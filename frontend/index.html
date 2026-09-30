@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Questões ENEM</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span class="brand">Questões ENEM</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="counter" id="counter"></span>
+      <button class="filter-toggle" id="toggleFilters">Filtros</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel">
+    <h3>Área</h3>
+    <div class="chipgroup" id="areaChips"></div>
+    <h3>Ano</h3>
+    <div class="chipgroup" id="anoChips"></div>
+    <h3>Buscar palavra no enunciado/contexto</h3>
+    <input type="text" id="keyword" placeholder="ex.: função, genética, revolução...">
+    <div class="panel-actions">
+      <button class="btn-apply" id="apply">Aplicar filtro</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="sheet"></div>
+
+  <div class="navbar">
+    <button class="navbtn" id="prevBtn">&larr; Anterior</button>
+    <button class="navbtn" id="randBtn">Aleatória</button>
+    <button class="navbtn" id="nextBtn">Próxima &rarr;</button>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
