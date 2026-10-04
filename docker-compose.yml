@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg2://enem:enem@db:5432/enem
-      CORS_ORIGINS: "*"
+      CORS_ORIGINS: "http://localhost:5500"
     ports:
       - "8000:8000"
     depends_on:
