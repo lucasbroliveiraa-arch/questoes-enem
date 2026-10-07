@@ -13,6 +13,8 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
 from app.main import app
 from app.models.question import Question
+from app.models.question_option import QuestionOption
+from app.services.question_identity import generate_external_id
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
@@ -52,20 +54,29 @@ def client(db_session):
 
 @pytest.fixture()
 def sample_question(db_session):
+    options = ["3", "4", "5", "6", "7"]
     question = Question(
+        external_id=generate_external_id(
+            year=2023, area="Matemática", number=1,
+            context="Contexto de exemplo.", statement="Quanto é 2 + 2?",
+            options=options,
+        ),
         year=2023,
         area="Matemática",
         number=1,
         context="Contexto de exemplo.",
         statement="Quanto é 2 + 2?",
-        option_a="3",
-        option_b="4",
-        option_c="5",
-        option_d="6",
-        option_e="7",
         correct_answer="B",
     )
     db_session.add(question)
+    db_session.flush()
+    for position, text in enumerate(options):
+        db_session.add(QuestionOption(
+            question_id=question.id,
+            letter="ABCDE"[position],
+            position=position,
+            text=text,
+        ))
     db_session.commit()
     db_session.refresh(question)
     return question

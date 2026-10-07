@@ -110,3 +110,81 @@ Questões e imagens vêm do repositório
   puderam ser recuperados; essas questões ficam sem imagem.
 - Sem autenticação de usuário no v1 — estatísticas são globais, não por
   pessoa (ver `docs/04-arquitetura-v2.md` para o plano de evolução).
+
+
+## Arquitetura de dados da v1
+
+A tabela `questions` mantém a identidade interna `id` e a identidade determinística
+`external_id` (SHA-256 do conteúdo canônico). As alternativas são registros de
+`question_options`, atualmente A-E. Explicações da questão e das alternativas
+pertencem ao conteúdo educacional do projeto e não participam do `external_id`.
+
+O seed normaliza e calcula `external_id` antes da persistência. Sem `--reset`,
+ele faz upsert por `external_id`, atualizando somente conteúdo vindo da fonte e
+preservando explicações criadas internamente.
+
+### Diagnóstico de alternativas vazias
+
+Depois de carregar o dataset, a consulta abaixo identifica questões com pelo
+menos uma alternativa vazia:
+
+```sql
+SELECT q.id, q.year, q.area, q.number, o.letter
+FROM questions q
+JOIN question_options o ON o.question_id = q.id
+WHERE BTRIM(o.text) = ''
+ORDER BY q.year, q.area, q.number, o.position;
+```
+
+No frontend, alternativas sem texto são ocultadas; a questão continua acessível
+quando existirem outras alternativas válidas.
+
+### Migrations
+
+A sequência atual é:
+
+```text
+0001_initial
+0002_identity_and_question_options
+0003_question_option_images
+```
+
+Para uma instalação limpa:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+### Seed incremental
+
+Para uma importação normal:
+
+```bash
+docker compose exec backend python -m pipeline.seed_db --source /app/../data-source/enem-data
+```
+
+Para reconstrução destrutiva:
+
+```bash
+docker compose exec backend python -m pipeline.seed_db --source /app/../data-source/enem-data --reset
+```
+
+`--reset` remove questões e respostas e deve ser reservado para reconstruções
+conscientes. A importação normal usa `external_id` para preservar registros
+existentes.
+
+### Produção
+
+O frontend continua estático e o backend expõe a API. A hospedagem concreta
+(Railway, Render, Fly.io ou VPS) permanece uma decisão operacional: antes do
+deploy, defina `CORS_ORIGINS` com o domínio real do frontend e não use `*`.
+
+### Limites da v1
+
+- As alternativas são A-E no modelo atual.
+- Imagens das alternativas têm modelagem própria, mas o dataset atual não
+  fornece metadados suficientes para associá-las automaticamente; o seed não
+  inventa essa associação.
+- Não há autenticação de usuário.
+- Estatísticas continuam globais.
+- `external_id` muda se o conteúdo lógico usado no hash mudar.

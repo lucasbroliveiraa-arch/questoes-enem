@@ -1,7 +1,3 @@
-"""
-Configurações da aplicação, lidas de variáveis de ambiente (com defaults
-sensatos para desenvolvimento local via docker-compose).
-"""
 import os
 
 
@@ -14,7 +10,12 @@ class Settings:
         "STATIC_DIR",
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app", "static"),
     )
-    cors_origins: list[str] = os.getenv("CORS_ORIGINS", "*").split(",")
+    # Em produção, defina explicitamente os domínios do frontend.
+    cors_origins: list[str] = [
+        origin.strip() for origin in os.getenv(
+            "CORS_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500"
+        ).split(",") if origin.strip()
+    ]
 
 
 settings = Settings()

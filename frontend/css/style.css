@@ -273,3 +273,14 @@ body {
   padding: 40px 10px;
   font-size: 14px;
 }
+
+
+.explanation {
+  display: none;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--paper-soft, #f5f2ea);
+}
+.explanation.show { display: block; }
+.explanation h3, .explanation h4 { margin-top: 0; }

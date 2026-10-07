@@ -1,43 +1,54 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class QuestionOut(BaseModel):
-    """
-    Representação pública de uma questão. Note que `correct_answer` NÃO entra
-    aqui de propósito — o gabarito só é revelado pela resposta do endpoint
-    POST /api/answers, depois que o usuário já respondeu.
-    """
-
+class QuestionOptionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    letter: str
+    position: int
+    text: str
+    explanation: str
+    images: list[str] = []
+
+
+class QuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    external_id: str
     year: int
     area: str
     number: int
     context: str
     statement: str
-    option_a: str
-    option_b: str
-    option_c: str
-    option_d: str
-    option_e: str
+    explanation: str
+    options: list[QuestionOptionOut] = []
     images: list[str] = []
 
     @classmethod
-    def from_model(cls, question, image_urls: list[str]) -> "QuestionOut":
+    def from_model(cls, question) -> "QuestionOut":
         return cls(
             id=question.id,
+            external_id=question.external_id,
             year=question.year,
             area=question.area,
             number=question.number,
             context=question.context,
             statement=question.statement,
-            option_a=question.option_a,
-            option_b=question.option_b,
-            option_c=question.option_c,
-            option_d=question.option_d,
-            option_e=question.option_e,
-            images=image_urls,
+            explanation=question.explanation,
+            options=[
+                QuestionOptionOut(
+                    id=option.id,
+                    letter=option.letter,
+                    position=option.position,
+                    text=option.text,
+                    explanation=option.explanation,
+                    images=[f"/static/images/{img.path}" for img in option.images],
+                )
+                for option in question.options
+            ],
+            images=[f"/static/images/{img.path}" for img in question.images],
         )
 
 

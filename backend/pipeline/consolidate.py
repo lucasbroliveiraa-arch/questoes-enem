@@ -1,9 +1,3 @@
-"""
-Extrai e limpa os CSVs brutos do repositório gabriel-antonelli/extract-enem-data.
-Reaproveitado quase sem alterações do MVP original — a única mudança é que
-agora devolve um DataFrame em memória em vez de salvar um .pkl, porque quem
-chama isso (seed_db.py) vai direto para o banco.
-"""
 import glob
 import os
 import re
@@ -29,10 +23,6 @@ def clean_text(x) -> str:
 
 
 def consolidate(data_source_dir: str) -> pd.DataFrame:
-    """
-    data_source_dir: caminho para a pasta enem-data/ do repositório de dados
-    clonado (contém enem-2009/, enem-2010/, ...).
-    """
     rows = []
     for year_dir in sorted(glob.glob(os.path.join(data_source_dir, "enem-*"))):
         year = os.path.basename(year_dir).replace("enem-", "")
@@ -49,22 +39,15 @@ def consolidate(data_source_dir: str) -> pd.DataFrame:
                         p = p.strip()
                         if p:
                             img_paths.append(p)
-                rows.append(
-                    {
-                        "year": int(year),
-                        "area": area_label,
-                        "number": int(r["number"]) if pd.notna(r.get("number")) else 0,
-                        "context": clean_text(r.get("context")),
-                        "statement": clean_text(r.get("question")),
-                        "option_a": clean_text(r.get("A")),
-                        "option_b": clean_text(r.get("B")),
-                        "option_c": clean_text(r.get("C")),
-                        "option_d": clean_text(r.get("D")),
-                        "option_e": clean_text(r.get("E")),
-                        "correct_answer": r.get("answer"),
-                        "image_paths": img_paths,
-                    }
-                )
-
+                rows.append({
+                    "year": int(year),
+                    "area": area_label,
+                    "number": int(r["number"]) if pd.notna(r.get("number")) else 0,
+                    "context": clean_text(r.get("context")),
+                    "statement": clean_text(r.get("question")),
+                    "options": [clean_text(r.get(letter)) for letter in "ABCDE"],
+                    "correct_answer": clean_text(r.get("answer")).upper(),
+                    "image_paths": img_paths,
+                })
     out = pd.DataFrame(rows)
     return out.sort_values(["year", "area", "number"]).reset_index(drop=True)

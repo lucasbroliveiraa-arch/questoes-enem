@@ -150,24 +150,27 @@ function renderQuestion(q) {
 
   html += `<div class="qtext">${escapeHtml(q.statement)}</div>`;
   html += '<div class="feedback" id="feedback"></div>';
-  
-  const options = [q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
-  const validOptions = options.filter(alt => alt && alt.trim() && !looksLikeImagePath(alt));
-  
+
+  const options = [...(q.options || [])].sort((a, b) => a.position - b.position);
   html += '<div class="alts" id="alts">';
-  
-  if (validOptions.length === 0) {
-    html += '<p style="font-style:italic;color:var(--ink-soft);">Alternativas não disponíveis para esta questão.</p>';
+
+  if (options.length === 0) {
+    html += '<p class="empty">Alternativas não disponíveis para esta questão.</p>';
   }
-  
-  options.forEach((alt, i) => {
-    if (!alt || !alt.trim() || looksLikeImagePath(alt)) return;
-    html += `<div class="alt" data-i="${i}"><div class="bubble">${letter(i)}</div><div class="alt-text">${escapeHtml(alt)}</div></div>`;
+
+  options.forEach((option, i) => {
+    const disabled = !option.text || !option.text.trim();
+    if (disabled) return;
+    html += `<div class="alt" data-letter="${escapeHtml(option.letter)}" data-i="${i}">
+      <div class="bubble">${escapeHtml(option.letter)}</div>
+      <div class="alt-text">${escapeHtml(option.text)}</div>
+    </div>`;
   });
-  
+
   html += '</div>';
+  html += '<div class="explanation" id="explanation"></div>';
   html += '<div class="actions"><button class="btn btn-primary" id="confirmBtn" disabled>Confirmar resposta</button></div>';
-  
+
   sheet.innerHTML = html;
 
   document.querySelectorAll(".alt").forEach(el => {
@@ -175,7 +178,7 @@ function renderQuestion(q) {
       if (state.answered) return;
       document.querySelectorAll(".alt").forEach(o => o.classList.remove("selected"));
       el.classList.add("selected");
-      state.selected = parseInt(el.dataset.i, 10);
+      state.selected = el.dataset.letter;
       document.getElementById("confirmBtn").disabled = false;
     });
   });
@@ -187,21 +190,30 @@ async function confirmAnswer() {
   if (state.selected === null || state.answered || !state.current) return;
   state.answered = true;
 
-  const resp = await fetch(`${API_BASE}/api/answers`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question_id: state.current.id,
-      selected_option: letter(state.selected),
-    }),
-  });
-  const result = await resp.json();
-  const correctIdx = ["A", "B", "C", "D", "E"].indexOf(result.correct_answer);
+  let result;
+  try {
+    const resp = await fetch(`${API_BASE}/api/answers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question_id: state.current.id,
+        selected_option: state.selected,
+      }),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    result = await resp.json();
+  } catch (e) {
+    state.answered = false;
+    const fb = document.getElementById("feedback");
+    fb.className = "feedback show bad";
+    fb.textContent = "Não foi possível registrar a resposta. Tente novamente.";
+    return;
+  }
 
-  document.querySelectorAll(".alt").forEach((el) => {
-    const i = parseInt(el.dataset.i, 10);
-    if (i === correctIdx) el.classList.add("correct");
-    if (i === state.selected && i !== correctIdx) el.classList.add("wrong");
+  document.querySelectorAll(".alt").forEach(el => {
+    const letterValue = el.dataset.letter;
+    if (letterValue === result.correct_answer) el.classList.add("correct");
+    if (letterValue === state.selected && letterValue !== result.correct_answer) el.classList.add("wrong");
   });
 
   const fb = document.getElementById("feedback");
@@ -210,10 +222,22 @@ async function confirmAnswer() {
     ? `Certa! Resposta: ${result.correct_answer}`
     : `Errada. Resposta certa: ${result.correct_answer}`;
 
+  const explanation = document.getElementById("explanation");
+  const general = state.current.explanation?.trim();
+  const optionExplanations = (state.current.options || [])
+    .filter(option => option.explanation && option.explanation.trim())
+    .map(option => `<p><strong>${escapeHtml(option.letter)}:</strong> ${escapeHtml(option.explanation)}</p>`)
+    .join("");
+  if (general || optionExplanations) {
+    explanation.innerHTML =
+      `${general ? `<h3>Explicação</h3><p>${escapeHtml(general)}</p>` : ""}
+       ${optionExplanations ? `<h4>Alternativas</h4>${optionExplanations}` : ""}`;
+    explanation.classList.add("show");
+  }
+
   await fetchStats();
   renderCounter();
 }
-
 document.getElementById("toggleFilters").addEventListener("click", () => {
   document.getElementById("panel").classList.toggle("open");
 });
