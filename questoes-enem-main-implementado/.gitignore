@@ -1,0 +1,22 @@
+# dados brutos (grande, recriável clonando o repo de dados)
+data-source/
+
+# imagens geradas pelo pipeline de seed (recriáveis via seed_db.py)
+backend/app/static/images/*
+!backend/app/static/images/.gitkeep
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# env
+.env
+
+# sistema
+.DS_Store
+
+# Documentos
+docs/
